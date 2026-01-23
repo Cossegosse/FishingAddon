@@ -1,4 +1,4 @@
-package com.example.mixins;
+package com.FishingAddon.mixins;
 
 import net.minecraft.client.gui.screen.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,5 +13,4 @@ public class MixinTitleScreen {
   private void onInit(CallbackInfo ci) {
     System.out.println("Title Screen Initialized");
   }
-
 }

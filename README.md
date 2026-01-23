@@ -1,4 +1,4 @@
-<h1 align="center">Example Addon</h1>
+<h1 align="center">FishingAddon</h1>
 
 <div align="center">
   
@@ -8,7 +8,7 @@
   
 </div>
 
-**Example Addon** is a simple Cobalt addon written in Kotlin for Minecraft 1.20.10. It demonstrates the basics of using features such as:
+**FishingAddon** is a simple Cobalt addon written in Kotlin for Minecraft 1.20.10. It demonstrates the basics of using features such as:
 
 - Custom commands
 - Custom modules w/ settings
