@@ -8,6 +8,9 @@ import org.cobalt.api.util.ChatUtils
 import org.cobalt.api.util.MouseUtils
 import org.cobalt.api.util.helper.KeyBind
 import org.cobalt.api.util.InventoryUtils
+import com.FishingAddon.util.helper.Clock
+import net.minecraft.client.Minecraft
+import net.minecraft.world.entity.decoration.ArmorStand
 import org.lwjgl.glfw.GLFW
 
 object Main : Module(
@@ -21,23 +24,55 @@ object Main : Module(
 
   private var isToggled = false
   private var wasKeyPressed = false
-  private var macroState = Macrostate.IDLE
-  private var hasValidFishingRod = false
+  private var macroState = MacroState.IDLE
+  private var castDelay = 500
+  private val clock = Clock()
+  private val mc = Minecraft.getInstance()
 
-  enum class Macrostate {
+  enum class MacroState {
     IDLE,
+    SWAP_TO_ROD,
     CASTING,
     REELING,
-    RESETTING
+    RESETTING,
+
   }
 
-  fun checkFishingRod() {
-    hasValidFishingRod = InventoryUtils.findItemInHotbar("fishing_rod")
+
+
+  fun detectFishbite(): Boolean {
+    val entities = mc.level?.entitiesForRendering() ?: return false
+    var armorStandsChecked = 0
+    var fishBiteStands = 0
+    for (entity in entities) {
+      if (entity is ArmorStand) {
+        armorStandsChecked++
+
+        if (entity.hasCustomName()) {
+          val customName = entity.customName
+          if (customName != null) {
+            val nameString = customName.string
+            if (nameString == "!!!") {
+              fishBiteStands++
+            }
+          }
+        }
+      }
+    }
+    return fishBiteStands > 0
+  }
+
+
+
+  fun swapToFishingRod() {
+    InventoryUtils.findItemInHotbar("rod")
+    InventoryUtils.holdHotbarSlot(InventoryUtils.findItemInHotbar("rod"))
   }
 
   fun start() {
     isToggled = true
     MouseUtils.ungrabMouse()
+    macroState = MacroState.SWAP_TO_ROD
   }
 
   fun stop() {
@@ -47,7 +82,7 @@ object Main : Module(
   }
 
   fun resetStates() {
-    macroState = Macrostate.IDLE
+    macroState = MacroState.IDLE
   }
 
   @SubscribeEvent
@@ -77,5 +112,33 @@ object Main : Module(
     if (!isToggled) {
       return
     }
+
+    if (!clock.passed()) return
+
+    when (macroState) {
+      MacroState.SWAP_TO_ROD -> {
+        swapToFishingRod()
+        clock.schedule(castDelay)
+        macroState = MacroState.CASTING
+      }
+      MacroState.CASTING -> {
+        MouseUtils.rightClick()
+        macroState = MacroState.REELING
+      }
+      MacroState.REELING -> {
+        if (detectFishbite()) {
+          macroState = MacroState.RESETTING
+          MouseUtils.rightClick()
+        }
+      }
+      MacroState.RESETTING -> {
+        clock.schedule(castDelay)
+        macroState = MacroState.CASTING
+      }
+      MacroState.IDLE -> {
+      }
+
+    }
   }
 }
+
