@@ -12,6 +12,7 @@ import com.FishingAddon.util.helper.Clock
 import net.minecraft.client.Minecraft
 import net.minecraft.world.entity.decoration.ArmorStand
 import org.lwjgl.glfw.GLFW
+import kotlin.random.Random
 
 object Main : Module(
   name = "Main tab",
@@ -118,7 +119,7 @@ object Main : Module(
     when (macroState) {
       MacroState.SWAP_TO_ROD -> {
         swapToFishingRod()
-        clock.schedule(castDelay)
+        clock.schedule(Random.nextInt(200,500))
         macroState = MacroState.CASTING
       }
       MacroState.CASTING -> {
@@ -127,12 +128,13 @@ object Main : Module(
       }
       MacroState.REELING -> {
         if (detectFishbite()) {
+          clock.schedule(Random.nextInt(50,150))
           macroState = MacroState.RESETTING
           MouseUtils.rightClick()
         }
       }
       MacroState.RESETTING -> {
-        clock.schedule(castDelay)
+        clock.schedule(Random.nextInt(200,500))
         macroState = MacroState.CASTING
       }
       MacroState.IDLE -> {
