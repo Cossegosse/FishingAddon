@@ -3,5 +3,6 @@
   "name": "FishingAddon",
   "version": "1.0.0",
   "entrypoints": ["com.FishingAddon.FishingAddon"],
-  "mixins": ["fishingaddon.mixins.json"]
+  "mixins": ["fishingaddon.mixins.json"],
+  "icon": "/assets/fishingaddon/icon.png"
 }

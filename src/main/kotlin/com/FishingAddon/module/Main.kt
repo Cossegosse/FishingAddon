@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.world.entity.decoration.ArmorStand
 import org.lwjgl.glfw.GLFW
 import kotlin.random.Random
+import net.minecraft.ChatFormatting
 
 object Main : Module(
   name = "Main tab",
@@ -33,6 +34,7 @@ object Main : Module(
     IDLE,
     SWAP_TO_ROD,
     CASTING,
+    WAITING,
     REELING,
     RESETTING,
 
@@ -59,74 +61,96 @@ object Main : Module(
     }
     return fishBiteStands > 0
   }
+
   fun swapToFishingRod() {
-    InventoryUtils.findItemInHotbar("rod")
-    InventoryUtils.holdHotbarSlot(InventoryUtils.findItemInHotbar("rod"))
-  }
-  fun start() {
-    isToggled = true
-    MouseUtils.ungrabMouse()
-    macroState = MacroState.SWAP_TO_ROD
-  }
-  fun stop() {
-    isToggled = false
-    MouseUtils.grabMouse()
-    resetStates()
-  }
-  fun resetStates() {
-    macroState = MacroState.IDLE
-  }
-  @SubscribeEvent
-  fun keybindListener(event: TickEvent) {
-    val isPressed = keyBind.isPressed()
-    if (isPressed && !wasKeyPressed) {
-      isToggled = !isToggled
+    val slot = InventoryUtils.findItemInHotbar("rod")
 
-      if (isToggled) start()
-      else stop()
-
-      ChatUtils.sendMessage(
-        "Fishing Macro is now "
-                + (if (isToggled) "§aEnabled" else "§cDisabled")
-                + "§r"
-      )
-    }
-    wasKeyPressed = isPressed
-  }
-  fun isToggled(): Boolean {
-    return isToggled
-  }
-  @SubscribeEvent
-  fun onTick(event: TickEvent) {
-    if (!isToggled) {
+    if (slot == -1) {
+      ChatUtils.sendMessage("${ChatFormatting.RED}No Fishing Rod found in hotbar! Disabling macro.${ChatFormatting.RESET}")
+      stop()
       return
     }
-    if (!clock.passed()) return
-    when (macroState) {
-      MacroState.SWAP_TO_ROD -> {
-        swapToFishingRod()
-        clock.schedule(Random.nextInt(200,500))
-        macroState = MacroState.CASTING
+
+    InventoryUtils.holdHotbarSlot(slot)
+  }
+    fun start() {
+      isToggled = true
+      MouseUtils.ungrabMouse()
+      macroState = MacroState.SWAP_TO_ROD
+    }
+
+    fun resetStates() {
+      macroState = MacroState.IDLE
+    }
+
+    fun stop() {
+      isToggled = false
+      MouseUtils.grabMouse()
+      resetStates()
+    }
+
+    @SubscribeEvent
+    fun keybindListener(event: TickEvent) {
+      val isPressed = keyBind.isPressed()
+      if (isPressed && !wasKeyPressed) {
+        isToggled = !isToggled
+
+        if (isToggled) start()
+        else stop()
+
+        ChatUtils.sendMessage(
+          "Fishing Macro is now "
+            + (if (isToggled) "§aEnabled" else "§cDisabled")
+            + "§r"
+        )
       }
-      MacroState.CASTING -> {
-        MouseUtils.rightClick()
-        macroState = MacroState.REELING
+      wasKeyPressed = isPressed
+    }
+
+    fun isToggled(): Boolean {
+      return isToggled
+    }
+
+    @SubscribeEvent
+    fun onTick(event: TickEvent) {
+      if (!isToggled) {
+        return
       }
-      MacroState.REELING -> {
-        if (detectFishbite()) {
-          clock.schedule(Random.nextInt(150,350))
-          macroState = MacroState.RESETTING
+      if (!clock.passed()) return
+      when (macroState) {
+        MacroState.SWAP_TO_ROD -> {
+          swapToFishingRod()
+          clock.schedule(Random.nextInt(200, 500))
+          macroState = MacroState.CASTING
+        }
+
+        MacroState.CASTING -> {
           MouseUtils.rightClick()
+          clock.schedule(Random.nextInt(100, 200))
+          macroState = MacroState.WAITING
+        }
+
+        MacroState.WAITING -> {
+          if (detectFishbite()) {
+            clock.schedule(Random.nextInt(50, 150))
+            macroState = MacroState.REELING
+          }
+        }
+
+        MacroState.REELING -> {
+          MouseUtils.rightClick()
+          macroState = MacroState.RESETTING
+
+        }
+
+        MacroState.RESETTING -> {
+          clock.schedule(Random.nextInt(200, 500))
+          macroState = MacroState.CASTING
+        }
+
+        MacroState.IDLE -> {
         }
       }
-      MacroState.RESETTING -> {
-        clock.schedule(Random.nextInt(200,500))
-        macroState = MacroState.CASTING
-      }
-      MacroState.IDLE -> {
-      }
-
     }
   }
-}
 
